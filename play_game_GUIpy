@@ -1,0 +1,116 @@
+import tkinter as tk
+from tkinter import messagebox
+import pandas as pd
+import random
+
+# Path to your CSV file
+file_path = 'movie_quotes.csv'
+
+# Load the CSV file into a DataFrame
+try:
+    movie_quotes_df = pd.read_csv(file_path)
+    print("Columns in CSV:", movie_quotes_df.columns)  # Debug: print column names
+except FileNotFoundError:
+    print(f"Error: The file '{file_path}' was not found.")
+    exit()
+except pd.errors.EmptyDataError:
+    print("Error: The file is empty.")
+    exit()
+except pd.errors.ParserError:
+    print("Error: The file could not be parsed.")
+    exit()
+
+# Check if 'Quote' and 'Title' columns exist
+if 'Quote' not in movie_quotes_df.columns or 'Title' not in movie_quotes_df.columns:
+    print("Error: 'Quote' or 'Title' column is missing in the CSV file.")
+    exit()
+
+# Display the DataFrame to check the contents
+print(movie_quotes_df.head())
+
+
+# Function to get a random quote and its options
+def get_random_quote():
+    sample = movie_quotes_df.sample(1).iloc[0]
+    print("sample", sample)
+    quote = sample['Quote']
+    correct_title = sample['Title']
+
+    # Ensure correct answer is in options
+    options = movie_quotes_df['Title'].drop_duplicates().sample(3).tolist()
+    if correct_title not in options:
+        options[random.randint(0, 2)] = correct_title
+
+    random.shuffle(options)
+    return quote, correct_title, options
+
+
+# Functionality for the buttons
+def check_answer(selected_option):
+    global correct_title
+    if selected_option == correct_title:
+        messagebox.showinfo("Correct!", "You selected the correct movie!")
+    else:
+        messagebox.showwarning("Incorrect", "Sorry, that's not the correct answer.")
+    # Disable buttons after selection
+    for btn in option_buttons:
+        btn.config(state=tk.DISABLED)
+
+
+def reset_quiz():
+    global correct_title
+    quote, correct_title, options = get_random_quote()
+    quote_label.config(text=f'"{quote}"')
+    for btn, option in zip(option_buttons, options):
+        btn.config(text=option, state=tk.NORMAL)
+
+
+def show_help():
+    messagebox.showinfo("Help", "Select the movie that matches the quote.")
+
+
+def show_stats():
+    # Dummy stats, to be implemented with actual stats logic
+    messagebox.showinfo("Stats", "Correct: 0\nIncorrect: 0")
+
+
+# Set up the main window
+root = tk.Tk()
+root.title("Movie Questionnaire")
+root.geometry("400x300")
+root.config(bg="#d9bcb3")
+
+# Title label
+title_label = tk.Label(root, text="Movie Questionnaire", font=("Helvetica", 16, "bold"), bg="#d9bcb3")
+title_label.pack(pady=10)
+
+# Quote label
+quote_label = tk.Label(root, text='"QUOTE"', font=("Helvetica", 12), bg="white", width=40, height=2)
+quote_label.pack(pady=10)
+
+# Option buttons
+option_buttons = []
+for i in range(3):
+    btn = tk.Button(root, text=f"option {i + 1}", width=20,
+                    command=lambda opt=i: check_answer(option_buttons[opt].cget('text')))
+    btn.pack(pady=5)
+    option_buttons.append(btn)
+
+# Control buttons (Help, Reset, Stats)
+control_frame = tk.Frame(root, bg="#d9bcb3")
+control_frame.pack(pady=20)
+
+help_button = tk.Button(control_frame, text="Help", command=show_help, bg="#a67c52", width=10)
+help_button.grid(row=0, column=0, padx=5)
+
+reset_button = tk.Button(control_frame, text="Reset", command=reset_quiz, bg="#4aa3df", width=10)
+reset_button.grid(row=0, column=1, padx=5)
+
+stats_button = tk.Button(control_frame, text="Stats", command=show_stats, bg="#c0c0c0", width=10)
+stats_button.grid(row=0, column=2, padx=5)
+
+# Initialize the quiz with a random quote
+reset_quiz()
+
+# Run the application
+root.mainloop()
